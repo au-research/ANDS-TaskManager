@@ -1,0 +1,18 @@
+# this is a configuration file for the python harvester
+# edit accordingly and save it as myconfig.py
+# Author u4187959
+
+polling_frequency = 5
+max_thread_count = 5
+max_up_seconds_per_task = 7200
+run_dir = '.../ands-taskmanager/'
+admin_email_addr = ""
+response_url='https://...'
+maintenance_request_url = 'https://...'
+data_store_path = run_dir + 'result_contents'
+log_dir= run_dir + 'log'
+db_host='localhost'
+db_user='user-name'
+db_passwd='user-password'
+db='db-name'
+tasks_table='tasks-table-name'

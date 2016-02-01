@@ -88,7 +88,7 @@ class TaskHandler():
             self.data = getRequest.getData()
             del getRequest
         except Exception as e:
-            self.handleExceptions(e)
+            self.handleExceptions(e, False)
 
     def updateTasksInfo(self):
         self.checkTasksStatus()

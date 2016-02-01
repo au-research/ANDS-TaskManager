@@ -404,14 +404,16 @@ class TasksManagerDaemon(Daemon):
 
 
     def checkForPendingTasks(self):
-        if len(self.__queuedTasks) < 10:
+        try:
+            conn = self.__database.getConnection()
+        except Exception as e:
+            return
+        cur = conn.cursor()
+        cur.execute("SELECT `id` FROM " + myconfig.tasks_table + " where `status` = 'RUNNING'; ")
+        self.__logger.logMessage("\RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
+        if len(self.__queuedTasks) < 10 and cur.rowcount < 5:
             currentTasks = self.getCurrentTasksIDs()
             self.__logger.logMessage("currentTasks: %s" %currentTasks, "DEBUG")
-            try:
-                conn = self.__database.getConnection()
-            except Exception as e:
-                return
-            cur = conn.cursor()
             if len(currentTasks) > 0:
                 cur.execute("SELECT * FROM "+ myconfig.tasks_table
                         +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())

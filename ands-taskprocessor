@@ -20,7 +20,7 @@
 . /etc/init.d/functions
 
 exec_python="/usr/local/bin/python3"
-exec="/opt/ands-taskmanager/task_processor.py"
+exec="/opt/ands-taskmanager/task_processor_daemon.py"
 
 prog="ands-taskmanager"
 

@@ -1,32 +1,32 @@
 #!/bin/sh
 #
-# ands-harvester  Startup script for the ANDS Harvester
+# ands-taskmanager  Startup script for the ANDS Task Manager
 # chkconfig: - 86 15
-# description: The ANDS Harvester does harvesting.
+# description: The ANDS Task Manager does tasking management.
 
 ### BEGIN INIT INFO
-# Provides: 
-# Required-Start: 
-# Required-Stop: 
-# Should-Start: 
-# Should-Stop: 
-# Default-Start: 
-# Default-Stop: 
-# Short-Description: This is the ANDS Harvester.
-# Description: 
+# Provides:
+# Required-Start:
+# Required-Stop:
+# Should-Start:
+# Should-Stop:
+# Default-Start:
+# Default-Stop:
+# Short-Description: This is the ANDS Background Task Manager.
+# Description:
 ### END INIT INFO
 
 # Source function library.
 . /etc/init.d/functions
 
 exec_python="/usr/local/bin/python3"
-exec="/usr/local/harvester/harvester_daemon.py"
+exec="/opt/ands-taskmanager/task_processor.py"
 
-prog="ands-harvester"
+prog="ands-taskmanager"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
-pidfile=/usr/local/harvester/daemon.pid
+pidfile=/var/www/html/workareas/minh/ands-taskmanager/daemon.pid
 lockfile=/var/lock/subsys/$prog
 
 start () {

@@ -1,0 +1,4 @@
+daemon.pid
+daemon_log.txt
+log/
+myconfig.py

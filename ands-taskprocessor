@@ -26,7 +26,7 @@ prog="ands-taskmanager"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
-pidfile=/var/www/html/workareas/minh/ands-taskmanager/daemon.pid
+pidfile=/opt/ands-taskmanager/daemon.pid
 lockfile=/var/lock/subsys/$prog
 
 start () {

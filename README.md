@@ -7,13 +7,15 @@ Running the Harvester as a Linux service
 ----------------------------------------
 
 The file `ands-taskprocessor` is a System V init script to be copied into
-`/etc/init.d`. Once copied into place, run:
+`/etc/init.d`.
+We used `ands-taskmanager` as the name of the script instead of `ands-taskprocessor`
 
 ```
-chmod 755 /etc/init.d/ands-taskprocessor
-chkconfig --add ands-taskprocessor
-chkconfig ands-taskprocessor on
-service ands-taskprocessor start
+cp ands-taskprocessor /etc/init.d/ands-taskmanager
+chmod 755 /etc/init.d/ands-taskmanager
+chkconfig --add ands-taskmanager
+chkconfig ands-taskmanager on
+service ands-taskmanager start
 ```
 
 The Task Manager will start up, and it will be started at each boot time.

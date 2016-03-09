@@ -129,12 +129,12 @@ class TaskHandler():
             if(cur.rowcount > 0):
                 self.__status = cur.fetchone()[0]
                 self.stopped = True
-                self.logger.logMessage("TASKS STOPPED WHILE RUNNING", "INFO")
+                self.logger.logMessage("TASK ID:("+ str(self.__tasksInfo['task_id']) +") STOPPED WHILE RUNNING", "INFO")
             cur.execute("SELECT status FROM %s where `id` =%s and `status` like '%s';" %(myconfig.tasks_table, str(self.__tasksInfo['task_id']), "COMPLETED%"))
             if(cur.rowcount > 0):
                 self.__status = cur.fetchone()[0]
                 self.stopped = True
-                self.logger.logMessage("TASK COMPLETED", "INFO")
+                self.logger.logMessage("TASK ID:("+ str(self.__tasksInfo['task_id']) +") GOT COMPLETED WHILE RUNNING", "INFO")
             cur.close()
             del cur
             conn.close()

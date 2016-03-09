@@ -464,6 +464,7 @@ class TasksManagerDaemon(Daemon):
         try:
             conn = self.__database.getConnection()
         except Exception as e:
+            self.__logger.logMessage('ERROR WHILE TRYING TO REPORT %s' %(str(time.time())), "ERROR")
             return
         cur = conn.cursor()
         cur.execute("SELECT * FROM configs WHERE `key`='tasks_daemon_status';")

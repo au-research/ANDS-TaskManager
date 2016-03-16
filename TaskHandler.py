@@ -84,8 +84,10 @@ class TaskHandler():
             return
         try:
             # self.setStatus('SIMPLE REQUEST INITIATED')
+            self.logger.logMessage("SIMPLE REQUEST: %s" %(myconfig.response_url + str(self.__tasksInfo['task_id']) + '/?api_key=api'), "DEBUG")
             getRequest = Request(myconfig.response_url + str(self.__tasksInfo['task_id']) + '/?api_key=api')
             self.data = getRequest.getData()
+            self.logger.logMessage("SIMPLE REQUEST RESPONSE: %s" %(str(self.data)), "DEBUG")
             del getRequest
         except Exception as e:
             self.handleExceptions(e, False)
@@ -109,7 +111,7 @@ class TaskHandler():
                       'progress':{'time':str(upTime),'start':str(self.startUpTime), 'end':''}
                     }
         try:
-            cur.execute("UPDATE %s SET `status` ='%s', `message` ='%s' where `id` = %s" %(myconfig.tasks_table, self.__status, json.dumps(statusDict).replace("'", "\\\'"), str(self.__tasksInfo['task_id'])))
+            cur.execute("UPDATE %s SET `status` ='%s' where `id` = %s" %(myconfig.tasks_table, self.__status, str(self.__tasksInfo['task_id'])))
             conn.commit()
             del cur
             conn.close()

@@ -84,11 +84,13 @@ class TaskHandler():
             return
         try:
             # self.setStatus('SIMPLE REQUEST INITIATED')
+            self.logger.logMessage("SIMPLE REQUEST: %s" %(myconfig.response_url + str(self.__tasksInfo['task_id']) + '/?api_key=api'), "DEBUG")
             getRequest = Request(myconfig.response_url + str(self.__tasksInfo['task_id']) + '/?api_key=api')
             self.data = getRequest.getData()
+            self.logger.logMessage("SIMPLE REQUEST RESPONSE: %s" %(str(self.data)), "DEBUG")
             del getRequest
         except Exception as e:
-            self.handleExceptions(e)
+            self.handleExceptions(e, False)
 
     def updateTasksInfo(self):
         self.checkTasksStatus()
@@ -97,7 +99,7 @@ class TaskHandler():
         try:
             conn = self.database.getConnection()
         except Exception as e:
-            self.logger.logMessage("Database Connection Error: %s" %(str(repr(e))))
+            self.logger.logMessage("Database Connection Error: %s" %(str(repr(e))), "ERROR")
             return
         cur = conn.cursor()
         upTime = int(time.time()) - self.startUpTime
@@ -109,12 +111,12 @@ class TaskHandler():
                       'progress':{'time':str(upTime),'start':str(self.startUpTime), 'end':''}
                     }
         try:
-            cur.execute("UPDATE %s SET `status` ='%s', `message` ='%s' where `id` = %s" %(myconfig.tasks_table, self.__status, json.dumps(statusDict).replace("'", "\\\'"), str(self.__tasksInfo['task_id'])))
+            cur.execute("UPDATE %s SET `status` ='%s' where `id` = %s" %(myconfig.tasks_table, self.__status, str(self.__tasksInfo['task_id'])))
             conn.commit()
             del cur
             conn.close()
         except Exception as e:
-            self.logger.logMessage("Database Error: (updateTasksInfo %s" %(str(repr(e))))
+            self.logger.logMessage("Database Error: (updateTasksInfo %s" %(str(repr(e))), "ERROR")
 
     def checkTasksStatus(self):
         if self.stopped:
@@ -129,17 +131,17 @@ class TaskHandler():
             if(cur.rowcount > 0):
                 self.__status = cur.fetchone()[0]
                 self.stopped = True
-                self.logger.logMessage("TASKS STOPPED WHILE RUNNING")
+                self.logger.logMessage("TASK ID:("+ str(self.__tasksInfo['task_id']) +") STOPPED WHILE RUNNING", "INFO")
             cur.execute("SELECT status FROM %s where `id` =%s and `status` like '%s';" %(myconfig.tasks_table, str(self.__tasksInfo['task_id']), "COMPLETED%"))
             if(cur.rowcount > 0):
                 self.__status = cur.fetchone()[0]
                 self.stopped = True
-                self.logger.logMessage("TASK COMPLETED")
+                self.logger.logMessage("TASK ID:("+ str(self.__tasksInfo['task_id']) +") GOT COMPLETED WHILE RUNNING", "INFO")
             cur.close()
             del cur
             conn.close()
         except Exception as e:
-            self.logger.logMessage("Database Error: (checkTasksStatus) %s" %(str(repr(e))))
+            self.logger.logMessage("Database Error: (checkTasksStatus) %s" %(str(repr(e))), "ERROR")
 
 
     def getStatus(self):
@@ -159,7 +161,7 @@ class TaskHandler():
         self.completed = True
         self.__status= 'COMPLETED'
         if(self.errorLog != ''):
-            self.logger.logMessage("Task ID:%s COMPLETED WITH SOME ERRORS:%s" %(str(self.__tasksInfo['task_id']),self.errorLog))
+            self.logger.logMessage("Task ID:%s COMPLETED WITH SOME ERRORS:%s" %(str(self.__tasksInfo['task_id']),self.errorLog), "INFO")
         # self.updateTasksInfo()
         self.stopped = True
 
@@ -172,19 +174,19 @@ class TaskHandler():
     def stop(self):
         if self.stopped:
             return
-        self.logger.logMessage("STOPPING Task ID: %s WITH STATUS: %s" %(str(self.__tasksInfo['task_id']), self.__status))
+        self.logger.logMessage("STOPPING Task ID: %s WITH STATUS: %s" %(str(self.__tasksInfo['task_id']), self.__status), "INFO")
         self.updateTasksInfo()
         self.stopped = True
 
     def rescheduleTask(self):
         self.__status= 'PENDING'
         self.message = "Rescheduling Tasks"
-        self.logger.logMessage("Tasks: %s status: %s" %(str(self.__tasksInfo['task_id']) ,self.__status))
+        self.logger.logMessage("Tasks: %s status: %s" %(str(self.__tasksInfo['task_id']) ,self.__status), "INFO")
         try:
             self.updateTasksInfo()
             self.stopped = True
         except Exception as e:
-            self.logger.logMessage("CAN NOT RESCHEDULE TasksID: %s ERROR: %s" %(str(self.__tasksInfo['task_id']), str(repr(e))))
+            self.logger.logMessage("CAN NOT RESCHEDULE TasksID: %s ERROR: %s" %(str(self.__tasksInfo['task_id']), str(repr(e))), "ERROR")
 
 
     def setStatus(self, status, message="no message"):

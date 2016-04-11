@@ -25,15 +25,21 @@ class Logger:
     __fileName = False
     __file = False
     __current_log_time = False
+    logLevels = {'ERROR':100,'INFO':50,'DEBUG':10}
+    __logLevel = 100
     def __init__(self):
         self.__current_log_time = datetime.now().strftime("%Y-%m-%d")
         self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
+        self.__logLevel = self.logLevels[myconfig.log_level]
+        self.logMessage("loglevel set to %s:%s" %(str(self.__logLevel), myconfig.log_level), myconfig.log_level)
 
-    def logMessage(self, message):
-        self.rotateLogFile()
-        self.__file = open(self.__fileName, "a", 0o777)
-        self.__file.write(message + " %s"  % datetime.now() + "\n")
-        self.__file.close()
+    def logMessage(self, message, logLevel='DEBUG'):
+        # print("LOGGING:%s:%s" %(str(self.logLevels[logLevel]), logLevel))
+        if(self.logLevels[logLevel] >= self.__logLevel):
+            self.rotateLogFile()
+            self.__file = open(self.__fileName, "a", 0o777)
+            self.__file.write(message + " %s"  % datetime.now() + "\n")
+            self.__file.close()
 
     def rotateLogFile(self):
         if(self.__current_log_time != datetime.now().strftime("%Y-%m-%d")):
@@ -81,7 +87,7 @@ class Daemon(object):
             sys.stderr.write(message)
             sys.exit(1)
 
-        self.__logger.logMessage('deamon going to background, PID: {}'.format(os.getpid()))
+        self.__logger.logMessage('deamon going to background, PID: {}'.format(os.getpid()), "INFO")
 
         # Redirect standard file descriptors.
         sys.stdout.flush()
@@ -101,7 +107,7 @@ class Daemon(object):
         atexit.register(self.delpid)
 
     def delpid(self):
-        self.__logger.logMessage("\n\nDELETING PID FILE...")
+        self.__logger.logMessage("\n\nDELETING PID FILE...", "INFO")
         os.remove(self.pidfile)
 
     def start(self):
@@ -123,14 +129,14 @@ class Daemon(object):
             sys.exit(1)
 
         # Start daemon.
-        self.__logger.logMessage("\n\nSTARTING __runningTasksMANAGER_DAEMON...")
+        self.__logger.logMessage("\n\nSTARTING __runningTasksMANAGER_DAEMON...", "INFO")
         self.daemonize()
         try:
             atexit.register(Daemon.shutDown)
             self.run()
         except (KeyboardInterrupt, SystemExit):
             self.shutDown()
-            self.__logger.logMessage("\n\nSTOPPING...")
+            self.__logger.logMessage("\n\nSTOPPING...", "INFO")
 
 
     def status(self):
@@ -160,7 +166,7 @@ class Daemon(object):
         Stop the daemon.
         """
         # Get the pid from pidfile.
-        self.__logger.logMessage("\nSTOPPING __runningTasksMANAGER_DAEMON...")
+        self.__logger.logMessage("\nSTOPPING __runningTasksMANAGER_DAEMON...", "INFO")
 
         try:
             pf = open(self.pidfile,'r')
@@ -174,7 +180,7 @@ class Daemon(object):
         # Try killing daemon process.
         try:
             os.kill(pid, SIGINT)
-            self.__logger.logMessage("\nKILLING %s..." %str(pid))
+            self.__logger.logMessage("\nKILLING %s..." %str(pid), "INFO")
             time.sleep(3)
         except OSError as e:
             print(str(e))
@@ -182,7 +188,7 @@ class Daemon(object):
 
         try:
             if os.path.exists(self.pidfile):
-                self.__logger.logMessage("\nDELETING PIDFILE %s..." %self.pidfile)
+                self.__logger.logMessage("\nDELETING PIDFILE %s..." %self.pidfile, "INFO")
                 os.remove(self.pidfile)
         except IOError as e:
             message = str(e) + "\nCan not remove pid file {}".format(self.pidfile)
@@ -198,7 +204,7 @@ class Daemon(object):
         self.start()
 
     def shutDown(self):
-        self.__logger.logMessage("\nSHUTTING DOWN ...")
+        self.__logger.logMessage("\nSHUTTING DOWN ...", "INFO")
 
     def run(self):
 
@@ -227,15 +233,25 @@ class TasksManagerDaemon(Daemon):
         __fileName = False
         __file = False
         __current_log_time = False
+        logLevels = {'ERROR':100,'INFO':50,'DEBUG':10}
+        __logLevel = 100
         def __init__(self):
             self.__current_log_time = datetime.now().strftime("%Y-%m-%d")
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
 
-        def logMessage(self, message):
-            self.rotateLogFile()
-            self.__file = open(self.__fileName, "a", 0o777)
-            self.__file.write(message + " %s"  % datetime.now() + "\n")
-            self.__file.close()
+        def __init__(self):
+            self.__current_log_time = datetime.now().strftime("%Y-%m-%d")
+            self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
+            self.__logLevel = self.logLevels[myconfig.log_level]
+            self.logMessage("loglevel set to %s:%s" %(str(self.__logLevel), myconfig.log_level), myconfig.log_level)
+
+        def logMessage(self, message, logLevel='DEBUG'):
+            # print("LOGGING:%s:%s" %(str(self.logLevels[logLevel]), logLevel))
+            if(self.logLevels[logLevel] >= self.__logLevel):
+                self.rotateLogFile()
+                self.__file = open(self.__fileName, "a", 0o777)
+                self.__file.write(message + " %s"  % datetime.now() + "\n")
+                self.__file.close()
 
         def rotateLogFile(self):
             if(self.__current_log_time != datetime.now().strftime("%Y-%m-%d")):
@@ -281,7 +297,7 @@ class TasksManagerDaemon(Daemon):
         conn.close()
 
     def queueTask(self, taskRow):
-        self.__logger.logMessage("QUEUING tasks Info:::%s, %s" %(str(taskRow[0]), taskRow[2]))
+        self.__logger.logMessage("QUEUING tasks Info:::%s, %s" %(str(taskRow[0]), taskRow[2]), "DEBUG")
         taskInfo = {}
         taskID = taskRow[0]
         taskHandler = str(taskRow[2] + 'TaskHandler')
@@ -303,7 +319,7 @@ class TasksManagerDaemon(Daemon):
             taskProcessor = class_(taskInfo, self.__logger, self.__database)
             self.__queuedTasks.append(taskProcessor)
         except ImportError as e:
-            self.__logger.logMessage(e)
+            self.__logger.logMessage(e, "ERROR")
             self.handleException(taskID, e)
 
     def requestMaintenanceTasks(self):
@@ -327,7 +343,7 @@ class TasksManagerDaemon(Daemon):
             taskProcessor = class_(taskInfo, self.__logger, self.__database)
             self.__queuedTasks.append(taskProcessor)
         except ImportError as e:
-            self.__logger.logMessage(e)
+            self.__logger.logMessage(e, "ERROR")
             self.handleException(taskID, e)
 
 
@@ -346,7 +362,7 @@ class TasksManagerDaemon(Daemon):
                         t.start()
                         self.__startedTasksCount = self.__startedTasksCount + 1
                 except KeyError as e:
-                    self.__logger.logMessage("tasksID %s already scheduled" %str(taskID))
+                    self.__logger.logMessage("tasksID %s already scheduled" %str(taskID), "ERROR")
         self.printLogs(int(len(self.__runningTasks)) + int(len(self.__queuedTasks)))
         #clean up completed harvests
         if len(self.__runningTasks) > 0:
@@ -366,22 +382,48 @@ class TasksManagerDaemon(Daemon):
                             del self.__running_threads[taskID]
                         del self.__runningTasks[taskID]
                 except KeyError as e:
-                    self.__logger.logMessage("tasksID %s already deleted" %str(taskID))
+                    self.__logger.logMessage("tasksID %s already deleted" %str(taskID), "ERROR")
         #if max hasn't reached add more harvests that are WAITING
 
 
+    def getCurrentTasksIDs(self):
+        currentTasksIDs = '';
+        first = True
+        for tasksID in list(self.__runningTasks):
+            if first:
+                first = False
+                currentTasksIDs = str(tasksID)
+            else:
+                currentTasksIDs = currentTasksIDs + "," + str(tasksID)
+        for taskHandler in list(self.__queuedTasks):
+            if first:
+                currentTasksIDs = str(taskHandler.getTaskId())
+            else:
+                currentTasksIDs = currentTasksIDs + "," + str(taskHandler.getTaskId())
+        return currentTasksIDs
+
 
     def checkForPendingTasks(self):
-        if len(self.__queuedTasks) < 10:
-            try:
-                conn = self.__database.getConnection()
-            except Exception as e:
-                return
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM "+ myconfig.tasks_table +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now()) + "')) ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
-            self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount))
+        try:
+            conn = self.__database.getConnection()
+        except Exception as e:
+            return
+        cur = conn.cursor()
+        cur.execute("SELECT `id` FROM " + myconfig.tasks_table + " where `status` = 'RUNNING'; ")
+        self.__logger.logMessage("\RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
+        if len(self.__queuedTasks) < 10 and cur.rowcount < 5:
+            currentTasks = self.getCurrentTasksIDs()
+            self.__logger.logMessage("currentTasks: %s" %currentTasks, "DEBUG")
+            if len(currentTasks) > 0:
+                cur.execute("SELECT * FROM "+ myconfig.tasks_table
+                        +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
+                        + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+            else:
+                cur.execute("SELECT * FROM "+ myconfig.tasks_table
+                        +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
+                        + "')) ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
             if(cur.rowcount > 0):
-                self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount))
+                self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount), "DEBUG")
                 for r in cur:
                     self.queueTask(r)
             cur.close()
@@ -390,7 +432,7 @@ class TasksManagerDaemon(Daemon):
 
 
     def describeModules(self):
-        self.__logger.logMessage("\nDESCRIBING TASK HANDLER MODULES:\n")
+        self.__logger.logMessage("\nDESCRIBING TASK HANDLER MODULES:\n", "INFO")
         taskHandlersDefinition = '{"task_manager_config":{"task_handlers":['
         notFirst = False
         for files in os.listdir(myconfig.run_dir + 'task_handlers'):
@@ -406,7 +448,7 @@ class TasksManagerDaemon(Daemon):
         file = open(self.__taskHandlersDefinitionFile, "w+")
         file.write(taskHandlersDefinition)
         file.close()
-        self.__logger.logMessage(taskHandlersDefinition)
+        self.__logger.logMessage(taskHandlersDefinition, "INFO")
 
 
     def reportToRegistry(self):
@@ -422,6 +464,7 @@ class TasksManagerDaemon(Daemon):
         try:
             conn = self.__database.getConnection()
         except Exception as e:
+            self.__logger.logMessage('ERROR WHILE TRYING TO REPORT %s' %(str(time.time())), "ERROR")
             return
         cur = conn.cursor()
         cur.execute("SELECT * FROM configs WHERE `key`='tasks_daemon_status';")
@@ -453,32 +496,32 @@ class TasksManagerDaemon(Daemon):
         self.__taskHandlersDefinitionFile = myconfig.run_dir + os.sep + "task_handlers_definition.json"
         self.setupEnv()
         self.describeModules()
-        self.__logger.logMessage("\n\nSTARTING TASKS MANAGER...")
+        self.__logger.logMessage("\n\nSTARTING TASKS MANAGER...", "INFO")
         atexit.register(self.shutDown)
         try:
             while True:
                 self.manageTasks()
                 time.sleep(myconfig.polling_frequency)
         except (KeyboardInterrupt, SystemExit):
-            self.__logger.logMessage("\n\nSTOPPING...")
+            self.__logger.logMessage("\n\nSTOPPING...", "INFO")
             #self.shutDown()
         except Exception as e:
-            self.__logger.logMessage("error %r" %(e))
+            self.__logger.logMessage("error %r" %(e), "ERROR")
             pass
 
 
     def printLogs(self, tCounter):
         if(self.__lastLogCounter > 0 or tCounter > 0):
             self.__lastLogCounter = tCounter
-            self.__logger.logMessage('RUNNING: %s WAITING: %s' %(str(len(self.__runningTasks)), str(len(self.__queuedTasks))))
-            self.__logger.logMessage('R...')
+            self.__logger.logMessage('RUNNING: %s WAITING: %s' %(str(len(self.__runningTasks)), str(len(self.__queuedTasks))) , "DEBUG")
+            self.__logger.logMessage('R...', "DEBUG")
             for tasksID in list(self.__runningTasks):
                 taskHandler = self.__runningTasks[tasksID]
-                self.__logger.logMessage(taskHandler.getInfo())
-            self.__logger.logMessage('W...')
+                self.__logger.logMessage(taskHandler.getInfo(), "DEBUG")
+            self.__logger.logMessage('W...', "DEBUG")
             for taskHandler in list(self.__queuedTasks):
-                self.__logger.logMessage(taskHandler.getInfo())
-            self.__logger.logMessage('______________________________________________________________________________________________')
+                self.__logger.logMessage(taskHandler.getInfo(), "DEBUG")
+            self.__logger.logMessage('______________________________________________________________________________________________', "DEBUG")
         else:
             self.requestMaintenanceTasks()
 
@@ -487,16 +530,16 @@ class TasksManagerDaemon(Daemon):
     def shutDown(self):
         #self.__logger.logMessage("SHUTTING DOWN...")
         loggedUserMsg = os.popen('who').read()
-        self.__logger.logMessage("SHUTTING DOWN...\nLogged In Users:\n%s" %(loggedUserMsg))
+        self.__logger.logMessage("SHUTTING DOWN...\nLogged In Users:\n%s" %(loggedUserMsg), "INFO")
         try:
             if os.path.exists(self.pidfile):
-                self.__logger.logMessage("\n\nDELETING PIDFILE %s..." %self.pidfile)
+                self.__logger.logMessage("\n\nDELETING PIDFILE %s..." %self.pidfile, "INFO")
                 os.remove(self.pidfile)
         except IOError as e:
             message = str(e) + "\nCan not remove pid file {}".format(self.pidfile)
-            self.__logger.logMessage(message)
+            self.__logger.logMessage(message, "ERROR")
         except Exception as e:
-            self.__logger.logMessage("error %r" %(e))
+            self.__logger.logMessage("error %r" %(e), "ERROR")
 
 
 

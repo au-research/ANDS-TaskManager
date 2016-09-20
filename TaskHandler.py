@@ -162,7 +162,7 @@ class TaskHandler():
         self.__status= 'COMPLETED'
         if(self.errorLog != ''):
             self.logger.logMessage("Task ID:%s COMPLETED WITH SOME ERRORS:%s" %(str(self.__tasksInfo['task_id']),self.errorLog), "INFO")
-        # self.updateTasksInfo()
+            self.updateTasksInfo()
         self.stopped = True
 
     def isCompleted(self):

@@ -299,11 +299,14 @@ class TasksManagerDaemon(Daemon):
     def queueTask(self, taskRow):
         self.__logger.logMessage("QUEUING tasks Info:::%s, %s" %(str(taskRow[0]), taskRow[2]), "DEBUG")
         taskInfo = {}
+        taskType = 'POKE'
         taskID = taskRow[0]
-        taskHandler = str(taskRow[2] + 'TaskHandler')
+        if taskRow[2] is not None:
+            taskType = taskRow[2]
+        taskHandler = str(taskType + 'TaskHandler')
         taskInfo['task_id'] = taskRow[0]
         taskInfo['name'] = taskRow[1]
-        taskInfo['type'] = taskRow[2]
+        taskInfo['type'] = taskType
         taskInfo['status'] = taskRow[3]
         taskInfo['message'] = taskRow[4]
         taskInfo['date_added'] = taskRow[5]

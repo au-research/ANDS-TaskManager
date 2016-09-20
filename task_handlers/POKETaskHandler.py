@@ -13,4 +13,4 @@ class POKETaskHandler(TaskHandler):
     """
     def runTask(self):
         self.doSimpleRequest()
-        #self.finish()
+        self.finish()

@@ -525,8 +525,8 @@ class TasksManagerDaemon(Daemon):
             for taskHandler in list(self.__queuedTasks):
                 self.__logger.logMessage(taskHandler.getInfo(), "DEBUG")
             self.__logger.logMessage('______________________________________________________________________________________________', "DEBUG")
-        else:
-            self.requestMaintenanceTasks()
+        #else:
+            #self.requestMaintenanceTasks()
 
 
 

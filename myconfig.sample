@@ -9,6 +9,7 @@ run_dir = '.../ands-taskmanager/'
 admin_email_addr = ""
 response_url='https://...'
 maintenance_request_url = 'https://...'
+php_shell_working_dir = '/var/www/.. '
 data_store_path = run_dir + 'result_contents'
 log_dir= run_dir + 'log'
 log_level = "INFO"

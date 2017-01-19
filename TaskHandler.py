@@ -3,27 +3,56 @@ try:
 except:
     import urllib2
 import time
-
-import subprocess
+import os
+import json
+from subprocess import Popen, PIPE
 import myconfig
-
+from signal import SIGTERM, SIGINT
 
 class PHPShell:
     data = None
     cmd = None
     taskId = None
+    method = None
     wd = None
+    pid = None
 
-    def __init__(self, taskId):
-        self.cmd = "php index.php api task exe"
+    def __init__(self,  taskId):
+        self.cmd = "php index.php api task"
         self.taskId = taskId
         self.wd = myconfig.php_shell_working_dir
 
+    def stop(self):
+        shellCommand = self.cmd
+        self.method = "stop"
+        shellCommand += " " + self.method + " " + self.taskId
+        try:
+            proc = Popen(shellCommand, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True,
+                         cwd=self.wd)
+            (output, error) = proc.communicate()
+            if proc.returncode != 0 or error != "":
+                raise Exception("Stopping the Task stopped by error code: %s, message: %s" %(str(proc.returncode), error))
+        except Exception as e:
+            raise Exception(str(e))
+
+    def getPID(self):
+        return self.pid
+
     def run(self):
         shellCommand = self.cmd
-        shellCommand += " " + self.taskId
-        subprocess.check_output(shellCommand, stderr=subprocess.STDOUT, shell=True, cwd=self.wd)
-        subprocess.call(shellCommand, shell=True, cwd=self.wd)
+        self.method = "exe"
+        shellCommand += " " + self.method + " " + self.taskId
+        try:
+            proc = Popen(shellCommand, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True,
+                         cwd=self.wd)
+            self.pid = proc.pid
+            (output, error) = proc.communicate()
+            if proc.returncode != 0 or error != "":
+                raise Exception("Task (%s) stopped by error code: %s, message: %s" %(str(self.taskId), str(proc.returncode), error))
+        except Exception as e:
+            raise Exception(str(e))
+
+
 
 class Request:
     data = False
@@ -78,6 +107,7 @@ class TaskHandler():
     errored = False
     stopped = False
     completed = False
+
     def __init__(self, tasksInfo, logger, database):
         self.startUpTime = int(time.time())
         self.tasksInfo = tasksInfo
@@ -85,7 +115,8 @@ class TaskHandler():
         self.database = database
         self.updateTasksInfo()
 
-
+    def getPID(self):
+        return None
 
     def runTask(self):
         self.doSimpleRequest()
@@ -105,8 +136,9 @@ class TaskHandler():
         except Exception as e:
             self.handleExceptions(e, False)
 
-    def updateTasksInfo(self):
-        self.checkTasksStatus()
+    def updateTasksInfo(self, updateMessage = False):
+        if(not updateMessage):
+            self.checkTasksStatus()
         if self.stopped:
             return
         try:
@@ -124,7 +156,12 @@ class TaskHandler():
                       'progress':{'time':str(upTime),'start':str(self.startUpTime), 'end':''}
                     }
         try:
-            cur.execute("UPDATE %s SET `status` ='%s' where `id` = %s" %(myconfig.tasks_table, self.__status, str(self.tasksInfo['task_id'])))
+            if updateMessage:
+                cur.execute("UPDATE %s SET `status` ='%s', `message` = '%s' where `id` = %s" % (
+                myconfig.tasks_table, self.__status, json.dumps(statusDict).replace("'", "\\\'"), str(self.tasksInfo['task_id'])))
+            else:
+                cur.execute("UPDATE %s SET `status` ='%s' where `id` = %s" % (
+                myconfig.tasks_table, self.__status, str(self.tasksInfo['task_id'])))
             conn.commit()
             del cur
             conn.close()
@@ -213,6 +250,12 @@ class TaskHandler():
         upTime = int(time.time()) - self.startUpTime
         if upTime > myconfig.max_up_seconds_per_task:
             self.errorLog = 'Task TOOK LONGER THAN %s minutes' %(str(myconfig.max_up_seconds_per_task/60)) + self.errorLog
+            try:
+                if self.getPID() is not None:
+                    os.kill(self.getPID(), SIGTERM)
+                self.stop()
+            except Exception as e:
+                self.handleExceptions(e, True)
             self.handleExceptions(exception={'message':'Tasks TOOK LONGER THAN %s minutes' %(str(myconfig.max_up_seconds_per_task/60))})
 
 
@@ -222,7 +265,7 @@ class TaskHandler():
             self.__status= 'STOPPED'
             #self.message= repr(exception).replace("'", "").replace('"', "")
             self.errorLog = self.errorLog  + str(exception).replace('\n',',').replace("'", "").replace('"', "") + ", "
-            self.updateTasksInfo()
+            self.updateTasksInfo(True)
             self.stopped = True
         else:
             self.errorLog = self.errorLog + str(exception).replace('\n',',').replace("'", "").replace('"', "") + ", "

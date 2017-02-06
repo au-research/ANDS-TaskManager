@@ -1,4 +1,11 @@
+__pycache__
 daemon.pid
 daemon_log.txt
 log/
 myconfig.py
+
+# Test reports and coverages
+.coverage
+coverage.xml
+junit.xml
+htmlcov

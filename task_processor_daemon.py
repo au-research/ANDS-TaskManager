@@ -37,7 +37,8 @@ class Logger:
         # print("LOGGING:%s:%s" %(str(self.logLevels[logLevel]), logLevel))
         if(self.logLevels[logLevel] >= self.__logLevel):
             self.rotateLogFile()
-            self.__file = open(self.__fileName, "a", 0o777)
+            self.__file = open(self.__fileName, "a", 0o775)
+            os.chmod(self.__fileName, 0o775)
             self.__file.write(message + " %s"  % datetime.now() + "\n")
             self.__file.close()
 

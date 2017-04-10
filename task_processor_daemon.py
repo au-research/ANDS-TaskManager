@@ -37,7 +37,8 @@ class Logger:
         # print("LOGGING:%s:%s" %(str(self.logLevels[logLevel]), logLevel))
         if(self.logLevels[logLevel] >= self.__logLevel):
             self.rotateLogFile()
-            self.__file = open(self.__fileName, "a", 0o777)
+            self.__file = open(self.__fileName, "a", 0o775)
+            os.chmod(self.__fileName, 0o775)
             self.__file.write(message + " %s"  % datetime.now() + "\n")
             self.__file.close()
 
@@ -413,7 +414,7 @@ class TasksManagerDaemon(Daemon):
             return
         cur = conn.cursor()
         cur.execute("SELECT `id` FROM " + myconfig.tasks_table + " where `status` = 'RUNNING'; ")
-        self.__logger.logMessage("\RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
+        self.__logger.logMessage("RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
         if len(self.__queuedTasks) < 10 and cur.rowcount < 5:
             currentTasks = self.getCurrentTasksIDs()
             self.__logger.logMessage("currentTasks: %s" %currentTasks, "DEBUG")
@@ -550,7 +551,7 @@ class TasksManagerDaemon(Daemon):
 
 if __name__ == '__main__':
     sys.path.append(myconfig.run_dir + 'task_handlers')
-    td = TasksManagerDaemon(myconfig.run_dir + '/daemon.pid')
+    td = TasksManagerDaemon(myconfig.run_dir + 'daemon.pid')
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             print ("Starting TasksManager as Daemon")

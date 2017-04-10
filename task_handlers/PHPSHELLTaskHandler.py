@@ -11,13 +11,17 @@ class PHPSHELLTaskHandler(TaskHandler):
             ]
       }
     """
+    phpShell = None
 
     def runTask(self):
+        self.phpShell = PHPShell(str(self.tasksInfo['task_id']))
         try:
-            phpShell = PHPShell(str(self.tasksInfo['task_id']))
-            phpShell.run()
-            self.finish()
-        except subprocess.CalledProcessError as e:
-            self.logger.logMessage("ERROR WHILE RUNNING COMMAND %s " %(e.output.decode()))
+            self.phpShell.run()
         except Exception as e:
-            self.logger.logMessage("ERROR WHILE RUNNING COMMAND %s" %(e))
+            self.handleExceptions(e, True)
+            self.phpShell.stop()
+            self.logger.logMessage("ERROR WHILE RUNNING COMMAND %s" %(e), "ERROR")
+        self.finish()
+
+    def getPID(self):
+        return self.phpShell.getPID()

@@ -300,7 +300,7 @@ class TasksManagerDaemon(Daemon):
             except Exception as e:
                 attempts += 1
                 time.sleep(5)
-                self.logger.logMessage("Database Error: (handleException) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
+                self.logger.logMessage("(handleException) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
     def queueTask(self, taskRow):
         self.__logger.logMessage("QUEUING tasks Info:::%s, %s" %(str(taskRow[0]), taskRow[2]), "DEBUG")
@@ -437,7 +437,7 @@ class TasksManagerDaemon(Daemon):
             del cur
             conn.close()
         except Exception as e:
-            self.__logger.logMessage('ERROR WHILE Checking for PENDING Tasks %s' % (e), "ERROR")
+            self.__logger.logMessage('(checkForPendingTasks) %s' % (e), "ERROR")
 
 
     def describeModules(self):
@@ -489,7 +489,7 @@ class TasksManagerDaemon(Daemon):
             except Exception as e:
                 attempts += 1
                 time.sleep(5)
-                self.__logger.logMessage('Database Error: (reportToRegistry) %s, Retry: %d' %(str(repr(e)), attempts), "ERROR")
+                self.__logger.logMessage('(reportToRegistry) %s, Retry: %d' %(str(repr(e)), attempts), "ERROR")
         return
 
 

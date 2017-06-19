@@ -167,7 +167,7 @@ class TaskHandler():
             except Exception as e:
                 attempts += 1
                 time.sleep(5)
-                self.logger.logMessage("Database Error: (updateTasksInfo) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
+                self.logger.logMessage("(updateTasksInfo) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
     def checkTasksStatus(self):
         if self.stopped:
@@ -194,7 +194,7 @@ class TaskHandler():
             except Exception as e:
                 attempts += 1
                 time.sleep(5)
-                self.logger.logMessage("Database Error: (checkTasksStatus) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
+                self.logger.logMessage("(checkTasksStatus) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
 
     def getStatus(self):

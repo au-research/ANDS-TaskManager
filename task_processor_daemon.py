@@ -39,7 +39,7 @@ class Logger:
             self.rotateLogFile()
             self.__file = open(self.__fileName, "a", 0o775)
             os.chmod(self.__fileName, 0o775)
-            self.__file.write(message + " %s"  % datetime.now() + "\n")
+            self.__file.write(logLevel + ": " + message + " %s"  % datetime.now() + "\n")
             self.__file.close()
 
     def rotateLogFile(self):
@@ -251,7 +251,7 @@ class TasksManagerDaemon(Daemon):
             if(self.logLevels[logLevel] >= self.__logLevel):
                 self.rotateLogFile()
                 self.__file = open(self.__fileName, "a", 0o777)
-                self.__file.write(message + " %s"  % datetime.now() + "\n")
+                self.__file.write(logLevel + ": " + message + " %s"  % datetime.now() + "\n")
                 self.__file.close()
 
         def rotateLogFile(self):
@@ -286,16 +286,21 @@ class TasksManagerDaemon(Daemon):
         taskStatus = 'STOPPED'
         self.__erroredTasksCount += 1
         eMessage = repr(exception).replace("'", "").replace('"', "")
-        try:
-            conn = self.__database.getConnection()
-        except Exception as e:
-            return
-        cur = conn.cursor()
-        cur.execute("UPDATE %s SET `status` ='%s', `message` = '%s' where `id` = %s" %(myconfig.tasks_table, taskStatus, eMessage, str(tasksID)))
-        conn.commit()
-        cur.close()
-        del cur
-        conn.close()
+        attempts = 0
+        while attempts < 3:
+            try:
+                conn = self.__database.getConnection()
+                cur = conn.cursor()
+                cur.execute("UPDATE %s SET `status` ='%s', `message` = '%s' where `id` = %s" %(myconfig.tasks_table, taskStatus, eMessage, str(tasksID)))
+                conn.commit()
+                cur.close()
+                del cur
+                conn.close()
+                break
+            except Exception as e:
+                attempts += 1
+                time.sleep(5)
+                self.logger.logMessage("Database Error: (handleException) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
     def queueTask(self, taskRow):
         self.__logger.logMessage("QUEUING tasks Info:::%s, %s" %(str(taskRow[0]), taskRow[2]), "DEBUG")
@@ -352,8 +357,8 @@ class TasksManagerDaemon(Daemon):
 
 
     def manageTasks(self):
-        self.checkForPendingTasks()
         self.reportToRegistry()
+        self.checkForPendingTasks()
         if len(self.__queuedTasks) > 0 and len(self.__runningTasks) < myconfig.max_thread_count:
             while len(self.__runningTasks) < myconfig.max_thread_count and len(self.__queuedTasks) > 0:
                 try:
@@ -410,29 +415,29 @@ class TasksManagerDaemon(Daemon):
     def checkForPendingTasks(self):
         try:
             conn = self.__database.getConnection()
-        except Exception as e:
-            return
-        cur = conn.cursor()
-        cur.execute("SELECT `id` FROM " + myconfig.tasks_table + " where `status` = 'RUNNING'; ")
-        self.__logger.logMessage("RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
-        if len(self.__queuedTasks) < 10 and cur.rowcount < 5:
-            currentTasks = self.getCurrentTasksIDs()
-            self.__logger.logMessage("currentTasks: %s" %currentTasks, "DEBUG")
-            if len(currentTasks) > 0:
-                cur.execute("SELECT * FROM "+ myconfig.tasks_table
-                        +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
-                        + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
-            else:
-                cur.execute("SELECT * FROM "+ myconfig.tasks_table
-                        +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
-                        + "')) ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
-            if(cur.rowcount > 0):
-                self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount), "DEBUG")
-                for r in cur:
-                    self.queueTask(r)
+            cur = conn.cursor()
+            cur.execute("SELECT `id` FROM " + myconfig.tasks_table + " where `status` = 'RUNNING'; ")
+            self.__logger.logMessage("RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
+            if len(self.__queuedTasks) < 10 and cur.rowcount < 5:
+                currentTasks = self.getCurrentTasksIDs()
+                self.__logger.logMessage("currentTasks: %s" %currentTasks, "DEBUG")
+                if len(currentTasks) > 0:
+                    cur.execute("SELECT * FROM "+ myconfig.tasks_table
+                            +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
+                            + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+                else:
+                    cur.execute("SELECT * FROM "+ myconfig.tasks_table
+                            +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
+                            + "')) ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+                if(cur.rowcount > 0):
+                    self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount), "DEBUG")
+                    for r in cur:
+                        self.queueTask(r)
             cur.close()
             del cur
             conn.close()
+        except Exception as e:
+            self.__logger.logMessage('ERROR WHILE Checking for PENDING Tasks %s' % (e), "ERROR")
 
 
     def describeModules(self):
@@ -465,21 +470,27 @@ class TasksManagerDaemon(Daemon):
                     'tasks_stopped' : str(self.__stoppedTasksCount),
                     'tasks_errored' : str(self.__erroredTasksCount),
                     }
-        try:
-            conn = self.__database.getConnection()
-        except Exception as e:
-            self.__logger.logMessage('ERROR WHILE TRYING TO REPORT %s' %(str(time.time())), "ERROR")
-            return
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM configs WHERE `key`='tasks_daemon_status';")
-        if(cur.rowcount > 0):
-            cur.execute("UPDATE configs set `value`='%s' where `key`='tasks_daemon_status';" %(json.dumps(statusDict).replace("'", "\\\'")))
-        else:
-            cur.execute("INSERT INTO configs (`value`, `type`, `key`) VALUES ('%s','%s','%s');" %(json.dumps(statusDict).replace("'", "\\\'"), 'json', 'tasks_daemon_status'))
-        conn.commit()
-        cur.close()
-        del cur
-        conn.close()
+        attempts = 0
+        while attempts < 3:
+            try:
+                conn = self.__database.getConnection()
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM configs WHERE `key`='tasks_daemon_status';")
+                if(cur.rowcount > 0):
+                    cur.execute("UPDATE configs set `value`='%s' where `key`='tasks_daemon_status';" %(json.dumps(statusDict).replace("'", "\\\'")))
+                else:
+                    cur.execute("INSERT INTO configs (`value`, `type`, `key`) VALUES ('%s','%s','%s');" %(json.dumps(statusDict).replace("'", "\\\'"), 'json', 'tasks_daemon_status'))
+                conn.commit()
+                cur.close()
+                del cur
+                conn.close()
+                self.__logger.logMessage('Reporting to Registry', "DEBUG")
+                break
+            except Exception as e:
+                attempts += 1
+                time.sleep(5)
+                self.__logger.logMessage('Database Error: (reportToRegistry) %s, Retry: %d' %(str(repr(e)), attempts), "ERROR")
+        return
 
 
     def setupEnv(self):
@@ -518,11 +529,11 @@ class TasksManagerDaemon(Daemon):
         if(self.__lastLogCounter > 0 or tCounter > 0):
             self.__lastLogCounter = tCounter
             self.__logger.logMessage('RUNNING: %s WAITING: %s' %(str(len(self.__runningTasks)), str(len(self.__queuedTasks))) , "DEBUG")
-            self.__logger.logMessage('R...', "DEBUG")
+            self.__logger.logMessage('RUNNING', "DEBUG")
             for tasksID in list(self.__runningTasks):
                 taskHandler = self.__runningTasks[tasksID]
                 self.__logger.logMessage(taskHandler.getInfo(), "DEBUG")
-            self.__logger.logMessage('W...', "DEBUG")
+            self.__logger.logMessage('WAITING', "DEBUG")
             for taskHandler in list(self.__queuedTasks):
                 self.__logger.logMessage(taskHandler.getInfo(), "DEBUG")
             self.__logger.logMessage('______________________________________________________________________________________________', "DEBUG")

@@ -141,57 +141,60 @@ class TaskHandler():
             self.checkTasksStatus()
         if self.stopped:
             return
-        try:
-            conn = self.database.getConnection()
-        except Exception as e:
-            self.logger.logMessage("Database Connection Error: %s" %(str(repr(e))), "ERROR")
-            return
-        cur = conn.cursor()
-        upTime = int(time.time()) - self.startUpTime
-        statusDict = {'status':self.__status,
-                      'message':self.message,
-                      'error':{'log':str.strip(self.errorLog), 'errored': self.errored},
-                      'completed':str(self.completed),
-                      'output':{'file': self.outputFilePath, 'dir': self.outputDir},
-                      'progress':{'time':str(upTime),'start':str(self.startUpTime), 'end':''}
-                    }
-        try:
-            if updateMessage:
-                cur.execute("UPDATE %s SET `status` ='%s', `message` = '%s' where `id` = %s" % (
-                myconfig.tasks_table, self.__status, json.dumps(statusDict).replace("'", "\\\'"), str(self.tasksInfo['task_id'])))
-            else:
-                cur.execute("UPDATE %s SET `status` ='%s' where `id` = %s" % (
-                myconfig.tasks_table, self.__status, str(self.tasksInfo['task_id'])))
-            conn.commit()
-            del cur
-            conn.close()
-        except Exception as e:
-            self.logger.logMessage("Database Error: (updateTasksInfo %s" %(str(repr(e))), "ERROR")
+        attempts = 0
+        while attempts < 3:
+            try:
+                conn = self.database.getConnection()
+                cur = conn.cursor()
+                upTime = int(time.time()) - self.startUpTime
+                statusDict = {'status':self.__status,
+                              'message':self.message,
+                              'error':{'log':str.strip(self.errorLog), 'errored': self.errored},
+                              'completed':str(self.completed),
+                              'output':{'file': self.outputFilePath, 'dir': self.outputDir},
+                              'progress':{'time':str(upTime),'start':str(self.startUpTime), 'end':''}
+                            }
+                if updateMessage:
+                    cur.execute("UPDATE %s SET `status` ='%s', `message` = '%s' where `id` = %s" % (
+                    myconfig.tasks_table, self.__status, json.dumps(statusDict).replace("'", "\\\'"), str(self.tasksInfo['task_id'])))
+                else:
+                    cur.execute("UPDATE %s SET `status` ='%s' where `id` = %s" % (
+                    myconfig.tasks_table, self.__status, str(self.tasksInfo['task_id'])))
+                conn.commit()
+                del cur
+                conn.close()
+                break
+            except Exception as e:
+                attempts += 1
+                time.sleep(5)
+                self.logger.logMessage("(updateTasksInfo) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
     def checkTasksStatus(self):
         if self.stopped:
             return
-        try:
-            conn = self.database.getConnection()
-        except Exception as e:
-            return
-        try:
-            cur = conn.cursor()
-            cur.execute("SELECT status FROM %s where `id` =%s and `status` like '%s';" %(myconfig.tasks_table, str(self.tasksInfo['task_id']), "STOPPED%"))
-            if(cur.rowcount > 0):
-                self.__status = cur.fetchone()[0]
-                self.stopped = True
-                self.logger.logMessage("TASK ID:("+ str(self.tasksInfo['task_id']) +") STOPPED WHILE RUNNING", "INFO")
-            cur.execute("SELECT status FROM %s where `id` =%s and `status` like '%s';" %(myconfig.tasks_table, str(self.tasksInfo['task_id']), "COMPLETED%"))
-            if(cur.rowcount > 0):
-                self.__status = cur.fetchone()[0]
-                self.stopped = True
-                self.logger.logMessage("TASK ID:("+ str(self.tasksInfo['task_id']) +") GOT COMPLETED WHILE RUNNING", "INFO")
-            cur.close()
-            del cur
-            conn.close()
-        except Exception as e:
-            self.logger.logMessage("Database Error: (checkTasksStatus) %s" %(str(repr(e))), "ERROR")
+        attempts = 0
+        while attempts < 3:
+            try:
+                conn = self.database.getConnection()
+                cur = conn.cursor()
+                cur.execute("SELECT status FROM %s where `id` =%s and `status` like '%s';" %(myconfig.tasks_table, str(self.tasksInfo['task_id']), "STOPPED%"))
+                if(cur.rowcount > 0):
+                    self.__status = cur.fetchone()[0]
+                    self.stopped = True
+                    self.logger.logMessage("TASK ID:("+ str(self.tasksInfo['task_id']) +") STOPPED WHILE RUNNING", "INFO")
+                cur.execute("SELECT status FROM %s where `id` =%s and `status` like '%s';" %(myconfig.tasks_table, str(self.tasksInfo['task_id']), "COMPLETED%"))
+                if(cur.rowcount > 0):
+                    self.__status = cur.fetchone()[0]
+                    self.stopped = True
+                    self.logger.logMessage("TASK ID:("+ str(self.tasksInfo['task_id']) +") GOT COMPLETED WHILE RUNNING", "INFO")
+                cur.close()
+                del cur
+                conn.close()
+                break
+            except Exception as e:
+                attempts += 1
+                time.sleep(5)
+                self.logger.logMessage("(checkTasksStatus) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
 
     def getStatus(self):

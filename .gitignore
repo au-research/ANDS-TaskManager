@@ -3,6 +3,8 @@ daemon.pid
 daemon_log.txt
 log/
 myconfig.py
+venv
+.idea
 
 # Test reports and coverages
 .coverage

@@ -1,10 +1,17 @@
-ANDS-TaskManager
-==============
+# ANDS-TaskManager
 
 The ANDS Task Manager is a helper that runs in the background, executing tasks so that the harvesting / indexing process is improved
 
-Running the Harvester as a Linux service
-----------------------------------------
+## Installation
+Requirements:
+* python 3.5 - 3.7
+* pip3 for respective versions
+* virtualenv (optional)
+```
+pip3 install -r requirements.txt
+```
+
+## Running the Harvester as a Linux service
 
 The file `ands-taskprocessor` is a System V init script to be copied into
 `/etc/init.d`.

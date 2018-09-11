@@ -476,12 +476,12 @@ class TasksManagerDaemon(Daemon):
             'running_since': start.strftime(dtformat),
             'uptime': (now - start).seconds,
             'counts': {
-                'tasks_running': len(self.__runningTasks),
-                'tasks_queued': len(self.__queuedTasks),
-                'total_tasks_started': self.__startedTasksCount,
-                'tasks_completed': self.__completedTasksCount,
-                'tasks_stopped': self.__stoppedTasksCount,
-                'tasks_errored': self.__erroredTasksCount,
+                'running': len(self.__runningTasks),
+                'queued': len(self.__queuedTasks),
+                'started': self.__startedTasksCount,
+                'completed': self.__completedTasksCount,
+                'stopped': self.__stoppedTasksCount,
+                'errored': self.__erroredTasksCount,
             }
         }
 

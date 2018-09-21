@@ -358,7 +358,7 @@ class TasksManagerDaemon(Daemon):
 
 
     def manageTasks(self):
-        self.reportToRegistry()
+        # self.reportToRegistry()
         self.checkForPendingTasks()
         if len(self.__queuedTasks) > 0 and len(self.__runningTasks) < myconfig.max_thread_count:
             while len(self.__runningTasks) < myconfig.max_thread_count and len(self.__queuedTasks) > 0:
@@ -486,6 +486,12 @@ class TasksManagerDaemon(Daemon):
         }
 
     def reportToRegistry(self):
+        """
+        Report it's status to the registry in the form of writing to the database
+        R29 deprecates this functionality in favor of local http server
+
+        :return:
+        """
         statusDict = {'last_report_timestamp' : time.time(),
                     'start_up_time' : self.__startUpTime,
                     'tasks_running' : str(len(self.__runningTasks)),

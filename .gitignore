@@ -3,6 +3,9 @@ daemon.pid
 daemon_log.txt
 log/
 myconfig.py
+venv
+.idea
+task_handlers_definition.json
 
 # Test reports and coverages
 .coverage

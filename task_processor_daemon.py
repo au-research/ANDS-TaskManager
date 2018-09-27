@@ -19,6 +19,7 @@ import string
 import json
 import threading
 from task_handlers import *
+import web_server
 
 
 class Logger:
@@ -357,7 +358,7 @@ class TasksManagerDaemon(Daemon):
 
 
     def manageTasks(self):
-        self.reportToRegistry()
+        # self.reportToRegistry()
         self.checkForPendingTasks()
         if len(self.__queuedTasks) > 0 and len(self.__runningTasks) < myconfig.max_thread_count:
             while len(self.__runningTasks) < myconfig.max_thread_count and len(self.__queuedTasks) > 0:
@@ -459,8 +460,38 @@ class TasksManagerDaemon(Daemon):
         file.close()
         self.__logger.logMessage(taskHandlersDefinition, "INFO")
 
+    def info(self):
+        """
+        Returns the current information for the daemon
+        Used for reporting current status to a web interface
+
+        :return:
+        """
+        start = datetime.fromtimestamp(self.__startUpTime)
+        now = datetime.now()
+        dtformat = '%Y-%m-%d %H:%M:%S'
+
+        return {
+            'running': True,
+            'running_since': start.strftime(dtformat),
+            'uptime': (now - start).seconds,
+            'counts': {
+                'running': len(self.__runningTasks),
+                'queued': len(self.__queuedTasks),
+                'started': self.__startedTasksCount,
+                'completed': self.__completedTasksCount,
+                'stopped': self.__stoppedTasksCount,
+                'errored': self.__erroredTasksCount,
+            }
+        }
 
     def reportToRegistry(self):
+        """
+        Report it's status to the registry in the form of writing to the database
+        R29 deprecates this functionality in favor of local http server
+
+        :return:
+        """
         statusDict = {'last_report_timestamp' : time.time(),
                     'start_up_time' : self.__startUpTime,
                     'tasks_running' : str(len(self.__runningTasks)),
@@ -513,6 +544,26 @@ class TasksManagerDaemon(Daemon):
         self.describeModules()
         self.__logger.logMessage("\n\nSTARTING TASKS MANAGER...", "INFO")
         atexit.register(self.shutDown)
+
+        # Starting the web interface as a different thread
+        try:
+            web_port = getattr(myconfig, 'web_port', 7021)
+            web_host = getattr(myconfig, 'web_host', '0.0.0.0')
+            http = web_server.new(daemon=self)
+            threading.Thread(
+                target=http.run,
+                kwargs={
+                    'host': web_host,
+                    'port': web_port,
+                    'debug': False
+                },
+                daemon=True
+            ).start()
+            self.__logger.logMessage("\n\nWeb Thread started at port %s \n\n" % web_port)
+        except Exception as e:
+            self.__logger.logMessage("error %r" % e)
+            pass
+
         try:
             while True:
                 self.manageTasks()

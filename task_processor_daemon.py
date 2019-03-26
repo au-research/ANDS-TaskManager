@@ -539,7 +539,7 @@ class TasksManagerDaemon(Daemon):
         self.__lastLogCount = 99
         self.__database = self.__DataBase()
         self.__logger = self.__Logger()
-        self.__taskHandlersDefinitionFile = myconfig.run_dir + "task_handlers_definition.json"
+        self.__taskHandlersDefinitionFile = myconfig.data_store_path + "task_handlers_definition.json"
         self.setupEnv()
         self.describeModules()
         self.__logger.logMessage("\n\nSTARTING TASKS MANAGER...", "INFO")

@@ -1,20 +1,26 @@
-# this is a configuration file for the python harvester
-# edit accordingly and save it as myconfig.py
-# Author u4187959
-
-polling_frequency = 5
-max_thread_count = 5
+polling_frequency = 3
+max_thread_count = 1
 max_up_seconds_per_task = 7200
-run_dir = '.../ands-taskmanager/'
+
+# paths
+run_dir = '/opt/apps/taskmanager/current/'
+data_store_path = '/var/data/taskmanager/'
+log_dir = '/var/log/taskmanager/'
+log_level = "DEBUG"
+
+# admin
 admin_email_addr = ""
-response_url='https://...'
-maintenance_request_url = 'https://...'
-php_shell_working_dir = '/var/www/.. '
-data_store_path = run_dir + 'result_contents'
-log_dir= run_dir + 'log'
-log_level = "INFO"
-db_host='localhost'
-db_user='user-name'
-db_passwd='user-password'
-db='db-name'
-tasks_table='tasks-table-name'
+
+# database
+db_host = ''
+db_user = ''
+db_passwd = ''
+db = 'dbs_registry'
+tasks_table = 'tasks'
+
+# for PHPSHELL task
+php_shell_working_dir = '/opt/apps/registry/'
+
+# for POKE task
+response_url = 'http://localhost/api/task/exe/'
+maintenance_request_url = 'http://localhost/api/task/run/'

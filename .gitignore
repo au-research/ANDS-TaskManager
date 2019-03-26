@@ -12,3 +12,6 @@ task_handlers_definition.json
 coverage.xml
 junit.xml
 htmlcov
+
+# artifact
+artifact.zip

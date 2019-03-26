@@ -16,3 +16,6 @@ run:
 
 test:
 	${ENV_NAME}/bin/nose2 -c nose2.cfg
+
+package: clean
+	zip -9 -r artifact.zip . -x '/*.git/*'

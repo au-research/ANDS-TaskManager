@@ -17,6 +17,7 @@ db_user = ''
 db_passwd = ''
 db = 'dbs_registry'
 tasks_table = 'tasks'
+db_port = 3306
 
 # for PHPSHELL task
 php_shell_working_dir = '/opt/apps/registry/'

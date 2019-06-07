@@ -267,17 +267,18 @@ class TasksManagerDaemon(Daemon):
         __db_user = ''
         __db_passwd = ''
         __db = ''
+
         def __init__(self):
             self.__host = myconfig.db_host
             self.__user = myconfig.db_user
             self.__passwd = myconfig.db_passwd
             self.__db = myconfig.db
-
+            self.__port = myconfig.db_port
 
         def getConnection(self):
-            #if not(self.__connection):
             try:
-                self.__connection = pymysql.connect(host=self.__host, user=self.__user, passwd = self.__passwd, db = self.__db)
+                self.__connection = pymysql.connect(host=self.__host, user=self.__user, passwd=self.__passwd,
+                                                    db=self.__db, port=self.__port)
             except:
                 e = sys.exc_info()[1]
                 raise RuntimeError("Database Exception %s" %(e))

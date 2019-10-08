@@ -244,7 +244,7 @@ class TasksManagerDaemon(Daemon):
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
 
         def __init__(self):
-            self.__running_task_id_to_ds_id_dict = {}
+            self.__queued_running_task_id_to_ds_id_dict = {}
             self.__current_log_time = datetime.now().strftime("%Y-%m-%d")
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
             self.__logLevel = self.logLevels[myconfig.log_level]

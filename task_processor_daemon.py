@@ -453,11 +453,11 @@ class TasksManagerDaemon(Daemon):
                     self.__logger.logMessage("currentTasks: %s" % currentTasks, "DEBUG")
                     cur.execute("SELECT * FROM "+ myconfig.tasks_table
                             +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
-                            + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+                            + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`date_added` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
                 else:
                     cur.execute("SELECT * FROM "+ myconfig.tasks_table
                             +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
-                            + "')) ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+                            + "')) ORDER BY `priority`,`date_added` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
                 if(cur.rowcount > 0):
                     self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount), "DEBUG")
                     for r in cur:

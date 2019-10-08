@@ -19,6 +19,7 @@ import string
 import json
 import threading
 from task_handlers import *
+import urllib.parse as urlparse
 import web_server
 
 
@@ -223,6 +224,7 @@ class TasksManagerDaemon(Daemon):
     __queuedTasks = deque()
     __runningTasks = {}
     __running_threads = {}
+    __queued_running_task_id_to_ds_id_dict = {}
     __lastLogCounter = 999
     __taskHandlersDefinitionFile = False
     __startUpTime = None
@@ -242,6 +244,7 @@ class TasksManagerDaemon(Daemon):
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
 
         def __init__(self):
+            self.__running_task_id_to_ds_id_dict = {}
             self.__current_log_time = datetime.now().strftime("%Y-%m-%d")
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
             self.__logLevel = self.logLevels[myconfig.log_level]
@@ -305,7 +308,7 @@ class TasksManagerDaemon(Daemon):
                 self.logger.logMessage("(handleException) %s, Retry: %d" %(str(repr(e)), attempts), "ERROR")
 
     def queueTask(self, taskRow):
-        self.__logger.logMessage("QUEUING tasks Info:::%s, %s" %(str(taskRow[0]), taskRow[2]), "DEBUG")
+
         taskInfo = {}
         taskType = 'POKE'
         taskID = taskRow[0]
@@ -324,14 +327,30 @@ class TasksManagerDaemon(Daemon):
         taskInfo['frequency'] = taskRow[9]
         taskInfo['params'] = taskRow[10]
 
+        urlParams = urlparse.parse_qs(taskInfo['params'])
+        ds_id = None
         try:
+            if isinstance(urlParams['ds_id'], list):
+                ds_id = urlParams['ds_id'][0]
+        except KeyError:
+            pass
+
+        if ds_id is not None and len(self.__queued_running_task_id_to_ds_id_dict) > 0:
+            for taskid, dsid in self.__queued_running_task_id_to_ds_id_dict.items():
+                if dsid == ds_id:
+                    self.__logger.logMessage("POSTPONING QUEUEING tasks ID:%s, (Datasource: %s is busy)" % (str(taskID), ds_id), "DEBUG")
+                    return False
+        try:
+            self.__logger.logMessage("QUEUEING tasks ID:%s, type %s, ds_id: %s" % (str(taskRow[0]), taskRow[2], ds_id), "DEBUG")
             task_handler_module = __import__(taskHandler, globals={}, locals={}, fromlist=[], level=0)
             class_ = getattr(task_handler_module, taskHandler)
             taskProcessor = class_(taskInfo, self.__logger, self.__database)
+            self.__queued_running_task_id_to_ds_id_dict[taskID] = ds_id
             self.__queuedTasks.append(taskProcessor)
         except ImportError as e:
             self.__logger.logMessage(e, "ERROR")
             self.handleException(taskID, e)
+        return True
 
     def requestMaintenanceTasks(self):
         try:
@@ -361,6 +380,7 @@ class TasksManagerDaemon(Daemon):
     def manageTasks(self):
         # self.reportToRegistry()
         self.checkForPendingTasks()
+        #if max hasn't reached add more harvests that are queued
         if len(self.__queuedTasks) > 0 and len(self.__runningTasks) < myconfig.max_thread_count:
             while len(self.__runningTasks) < myconfig.max_thread_count and len(self.__queuedTasks) > 0:
                 try:
@@ -372,8 +392,11 @@ class TasksManagerDaemon(Daemon):
                         self.__running_threads[taskID] = t
                         t.start()
                         self.__startedTasksCount = self.__startedTasksCount + 1
+                    elif taskProcessor.isCompleted or taskProcessor.isStopped:
+                        del self.__queued_running_task_id_to_ds_id_dict[taskID]
                 except KeyError as e:
                     self.__logger.logMessage("tasksID %s already scheduled" %str(taskID), "ERROR")
+                    del self.__queued_running_task_id_to_ds_id_dict[taskID]
         self.printLogs(int(len(self.__runningTasks)) + int(len(self.__queuedTasks)))
         #clean up completed harvests
         if len(self.__runningTasks) > 0:
@@ -386,15 +409,18 @@ class TasksManagerDaemon(Daemon):
                         if self.__running_threads[taskID].isAlive() == True:
                             del self.__running_threads[taskID]
                         del self.__runningTasks[taskID]
+                        del self.__queued_running_task_id_to_ds_id_dict[taskID]
                     elif taskProcessor.isStopped():
                         self.__stoppedTasksCount = self.__stoppedTasksCount + 1
                         del taskProcessor
                         if self.__running_threads[taskID].isAlive() == True:
                             del self.__running_threads[taskID]
                         del self.__runningTasks[taskID]
+                        del self.__queued_running_task_id_to_ds_id_dict[taskID]
                 except KeyError as e:
                     self.__logger.logMessage("tasksID %s already deleted" %str(taskID), "ERROR")
-        #if max hasn't reached add more harvests that are WAITING
+                    del self.__queued_running_task_id_to_ds_id_dict[taskID]
+
 
 
     def getCurrentTasksIDs(self):
@@ -419,11 +445,12 @@ class TasksManagerDaemon(Daemon):
             conn = self.__database.getConnection()
             cur = conn.cursor()
             cur.execute("SELECT `id` FROM " + myconfig.tasks_table + " where `status` = 'RUNNING'; ")
-            self.__logger.logMessage("RUNNING (in Database): %s" %str(cur.rowcount), "DEBUG")
+            if cur.rowcount > 0:
+                self.__logger.logMessage("RUNNING (according to tasks table): %s" %str(cur.rowcount), "DEBUG")
             if len(self.__queuedTasks) < 10 and cur.rowcount < 5:
                 currentTasks = self.getCurrentTasksIDs()
-                self.__logger.logMessage("currentTasks: %s" %currentTasks, "DEBUG")
                 if len(currentTasks) > 0:
+                    self.__logger.logMessage("currentTasks: %s" % currentTasks, "DEBUG")
                     cur.execute("SELECT * FROM "+ myconfig.tasks_table
                             +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
                             + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
@@ -536,16 +563,7 @@ class TasksManagerDaemon(Daemon):
 
 
     def run(self):
-        self.__startUpTime = time.time()
-        self.__lastLogCount = 99
-        self.__database = self.__DataBase()
-        self.__logger = self.__Logger()
-        self.__taskHandlersDefinitionFile = myconfig.data_store_path + "task_handlers_definition.json"
-        self.setupEnv()
-        self.describeModules()
-        self.__logger.logMessage("\n\nSTARTING TASKS MANAGER...", "INFO")
-        atexit.register(self.shutDown)
-
+        self.initalise()
         # Starting the web interface as a different thread
         try:
             web_port = getattr(myconfig, 'web_port', 7021)
@@ -575,6 +593,18 @@ class TasksManagerDaemon(Daemon):
         except Exception as e:
             self.__logger.logMessage("error %r" %(e), "ERROR")
             pass
+
+
+    def initalise(self):
+        self.__startUpTime = time.time()
+        self.__lastLogCount = 99
+        self.__database = self.__DataBase()
+        self.__logger = self.__Logger()
+        self.__taskHandlersDefinitionFile = myconfig.run_dir + "task_handlers_definition.json"
+        self.setupEnv()
+        self.describeModules()
+        self.__logger.logMessage("\n\nSTARTING TASKS MANAGER...", "INFO")
+        atexit.register(self.shutDown)
 
 
     def printLogs(self, tCounter):

@@ -244,7 +244,7 @@ class TasksManagerDaemon(Daemon):
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
 
         def __init__(self):
-            self.__running_task_id_to_ds_id_dict = {}
+            self.__queued_running_task_id_to_ds_id_dict = {}
             self.__current_log_time = datetime.now().strftime("%Y-%m-%d")
             self.__fileName = myconfig.log_dir + os.sep + self.__current_log_time + ".log"
             self.__logLevel = self.logLevels[myconfig.log_level]
@@ -270,17 +270,18 @@ class TasksManagerDaemon(Daemon):
         __db_user = ''
         __db_passwd = ''
         __db = ''
+
         def __init__(self):
             self.__host = myconfig.db_host
             self.__user = myconfig.db_user
             self.__passwd = myconfig.db_passwd
             self.__db = myconfig.db
-
+            self.__port = myconfig.db_port
 
         def getConnection(self):
-            #if not(self.__connection):
             try:
-                self.__connection = pymysql.connect(host=self.__host, user=self.__user, passwd = self.__passwd, db = self.__db)
+                self.__connection = pymysql.connect(host=self.__host, user=self.__user, passwd=self.__passwd,
+                                                    db=self.__db, port=self.__port)
             except:
                 e = sys.exc_info()[1]
                 raise RuntimeError("Database Exception %s" %(e))
@@ -452,11 +453,11 @@ class TasksManagerDaemon(Daemon):
                     self.__logger.logMessage("currentTasks: %s" % currentTasks, "DEBUG")
                     cur.execute("SELECT * FROM "+ myconfig.tasks_table
                             +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
-                            + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+                            + "')) AND id NOT IN (" + currentTasks + ") ORDER BY `priority`,`date_added` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
                 else:
                     cur.execute("SELECT * FROM "+ myconfig.tasks_table
                             +" where `status` = 'PENDING' and (`next_run` is null or `next_run` <=timestamp('" + str(datetime.now())
-                            + "')) ORDER BY `priority`,`next_run` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
+                            + "')) ORDER BY `priority`,`date_added` ASC LIMIT " + str(10 - len(self.__queuedTasks)) + ";")
                 if(cur.rowcount > 0):
                     self.__logger.logMessage("Add PENDING Tasks to queue (Count:%s)" %str(cur.rowcount), "DEBUG")
                     for r in cur:
@@ -563,7 +564,6 @@ class TasksManagerDaemon(Daemon):
 
     def run(self):
         self.initalise()
-
         # Starting the web interface as a different thread
         try:
             web_port = getattr(myconfig, 'web_port', 7021)

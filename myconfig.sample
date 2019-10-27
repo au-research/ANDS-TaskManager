@@ -1,20 +1,37 @@
-# this is a configuration file for the python harvester
+# this is a configuration file for the ARDC's python task manager
 # edit accordingly and save it as myconfig.py
 # Author u4187959
-
-polling_frequency = 5
-max_thread_count = 5
+# the interval between each time the taskmanager checks for new tasks
+polling_frequency = 3
+# number of simultaneous tasks to run
+max_thread_count = 3
+# how long (in seconds) can a task thread run before deemed to be stopped
 max_up_seconds_per_task = 7200
-run_dir = '.../ands-taskmanager/'
+# the path where the taskmanager scripts are stored
+run_dir = '/opt/taskmanager/'
+# not used but was planning to send an alert in case a tasks do fail
 admin_email_addr = ""
-response_url='https://...'
-maintenance_request_url = 'https://...'
-php_shell_working_dir = '/var/www/.. '
+# the two "end point" where the taskmanager can execute the tasks
+# the POKETaskHandler takes a URL endpoint
+response_url='http://localhost/api/task/exe/'
+# the PHPSHELLTaskHandler needs the php script location
+php_shell_working_dir="/opt/ands/registry/"
+# maintenance request URL for the MAINTENANCETaskHandler
+maintenance_request_url = 'https://localhost/api/task/run/'
+# not used but in case the task will produce data that need to be shared
 data_store_path = run_dir + 'result_contents'
-log_dir= run_dir + 'log'
-log_level = "INFO"
-db_host='localhost'
-db_user='user-name'
-db_passwd='user-password'
-db='db-name'
-tasks_table='tasks-table-name'
+# the directory the taskamanager stores its logs
+log_dir= '/opt/taskmanager/log'
+# the log "INFO, ERROR, DEBUG" level (DEBUG) is very verbose so try not to use it unless developing
+log_level = "DEBUG"
+# database host of the registry
+db_host='dbhost.host'
+# db user and password
+db_user='db_username'
+db_passwd='db_password'
+# the database name
+db='dbs_registry'
+# the database port
+db_port=3306
+# the table where tasks stored
+tasks_table='tasks'

@@ -1,0 +1,13 @@
+[Unit]
+Description=TaskManager Service
+After=multi-user.target syslog.target network.target
+
+[Service]
+Type=simple
+User=services-user
+WorkingDirectory=/opt/apps/taskmanager/current/
+ExecStart=/opt/apps/taskmanager/current/venv/bin/python3.6 task_processor_daemon.py run
+StandardInput=tty-force
+
+[Install]
+WantedBy=multi-user.target

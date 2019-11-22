@@ -228,7 +228,7 @@ class TaskHandler():
         if self.stopped:
             return
         self.logger.logMessage("STOPPING Task ID: %s WITH STATUS: %s" %(str(self.tasksInfo['task_id']), self.__status), "INFO")
-        self.updateTasksInfo()
+        self.updateTasksInfo(True)
         self.stopped = True
 
     def rescheduleTask(self):

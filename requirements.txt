@@ -13,3 +13,5 @@ pycparser==2.18
 PyMySQL==0.9.3
 six==1.11.0
 Werkzeug==0.15.3
+requests==2.27.0
+responses==0.17.0

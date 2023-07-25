@@ -8,7 +8,7 @@ import myconfig
 class SlackUtils:
     webhook_url = None
     channel_id = None
-    logLevels = {'ERROR': 100, 'INFO': 50, 'DEBUG': 10}
+    logLevels = {"RESUME": 101, 'ERROR': 100, 'INFO': 50, 'DEBUG': 10}
     logLevel = 100
 
     def __init__(self, webhook_url, channel_id):
@@ -18,7 +18,7 @@ class SlackUtils:
         self.channel_id = channel_id
         self.logLevel = self.logLevels[myconfig.slack_channel_notification_level]
 
-    def post_message(self, text, data_source_id, message_type='INFO'):
+    def post_message(self, text, task_info, message_type='INFO'):
         """
         Send Messages to the configured Slack channel
         """
@@ -26,17 +26,25 @@ class SlackUtils:
             return
         if self.logLevels[message_type] < self.logLevel:
             return
-        colour = "#00FF00"
+        colour = "#00AA00"
         if message_type == 'ERROR':
-            colour = "#FF0000"
-        if message_type == 'DEBUG':
-            colour = "#0000FF"
+            colour = "#AA0000"
+        elif message_type == 'RESUME':
+            colour = "#FFBF00"
+        elif message_type == 'DEBUG':
+            colour = "#0000AA"
         http_adapter = HTTPAdapter(max_retries=self.retryCount)
         session = requests.Session()
         session.mount(self.webhook_url, http_adapter)
+        action_text = "View the <" + myconfig.slack_registry_datasource_view_url + str(task_info['ds_id']) \
+                      + "|DataSource> for more details"
+        if message_type == "RESUME":
+            action_text = "Click <" + myconfig.slack_api_registry_task_url + str(task_info['task_id']) \
+                          + "/resume|here> to Resume Task"
+
         data = {
             "channel": self.channel_id,
-            "text": myconfig.slack_harvester_name + " " + message_type,
+            "text": myconfig.slack_app_name + " " + message_type,
             "attachments": [
                 {
                     "text": text,
@@ -44,8 +52,7 @@ class SlackUtils:
                 },
                 {
                     "type": "mrkdwn",
-                    "text": "View the <" + myconfig.slack_registry_datasource_view_url + str(data_source_id)
-                            + "|DataSource> for more details",
+                    "text": action_text,
                     "color": colour
                 }
             ]

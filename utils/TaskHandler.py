@@ -11,9 +11,9 @@ from signal import SIGTERM, SIGINT
 from utils.SlackUtils import SlackUtils
 
 
-def update_slack_channel(message, data_source_id, log_level):
+def update_slack_channel(message, tasksInfo, log_level):
     slack_util = SlackUtils(myconfig.slack_channel_webhook_url, myconfig.slack_channel_id)
-    slack_util.post_message(message, data_source_id, log_level)
+    slack_util.post_message(message, tasksInfo, log_level)
 
 
 class TaskHandler:
@@ -166,17 +166,17 @@ class TaskHandler:
             return
         upTime = int(time.time()) - self.startUpTime
         if upTime > myconfig.max_up_seconds_per_task:
-            self.errorLog = 'Task TOOK LONGER THAN %s minutes' % (
+            self.errorLog = 'Task Took Longer Than %s minutes' % (
                 str(myconfig.max_up_seconds_per_task / 60)) + self.errorLog
             try:
-
+                self.stop()
                 if self.get_pid() is not None:
                     os.kill(self.get_pid(), SIGTERM)
-                self.stop()
             except Exception as e:
                 self.handle_exceptions(e, True)
-            self.handle_exceptions(exception={
-                'message': 'Tasks TOOK LONGER THAN %s minutes' % (str(myconfig.max_up_seconds_per_task / 60))})
+            update_slack_channel('Task Took Longer Than %s minutes' % (str(myconfig.max_up_seconds_per_task / 60)),
+                                 self.tasksInfo, "RESUME")
+
 
     def handle_exceptions(self, exception, terminate=True):
         self.errored = True
@@ -186,6 +186,7 @@ class TaskHandler:
             self.errorLog = self.errorLog + str(exception).replace('\n', ',').replace("'", "").replace('"', "") + ", "
             self.update_tasks_info(True)
             self.stopped = True
-            update_slack_channel(str(exception).replace('\n', ',').replace("'", "").replace('"', ""), self.tasksInfo['ds_id'], "ERROR")
+            update_slack_channel(str(exception).replace('\n', ',').replace("'", "").replace('"', ""), self.tasksInfo,
+                                 "ERROR")
         else:
             self.errorLog = self.errorLog + str(exception).replace('\n', ',').replace("'", "").replace('"', "") + ", "

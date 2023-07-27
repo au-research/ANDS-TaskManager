@@ -1,10 +1,5 @@
-import myconfig
-import json
 import unittest
-import responses
-
-import requests
-import io, myconfig
+import myconfig
 
 from utils.SlackUtils import SlackUtils
 

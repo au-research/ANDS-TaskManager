@@ -14,17 +14,17 @@ class PHPShell:
     wd = None
     pid = None
 
-    def __init__(self, taskId):
+    def __init__(self, task_id):
         self.cmd = "php index.php api task"
-        self.taskId = taskId
+        self.taskId = task_id
         self.wd = myconfig.php_shell_working_dir
 
     def stop(self):
-        shellCommand = self.cmd
+        shell_command = self.cmd
         self.method = "stop"
-        shellCommand += " " + self.method + " " + self.taskId
+        shell_command += " " + self.method + " " + self.taskId
         try:
-            proc = Popen(shellCommand, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True,
+            proc = Popen(shell_command, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True,
                          cwd=self.wd)
             (output, error) = proc.communicate()
             if proc.returncode != 0 or error != "":
@@ -37,11 +37,11 @@ class PHPShell:
         return self.pid
 
     def run(self):
-        shellCommand = self.cmd
+        shell_command = self.cmd
         self.method = "exe"
-        shellCommand += " " + self.method + " " + self.taskId
+        shell_command += " " + self.method + " " + self.taskId
         try:
-            proc = Popen(shellCommand, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True,
+            proc = Popen(shell_command, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True,
                          cwd=self.wd)
             self.pid = proc.pid
             (output, error) = proc.communicate()

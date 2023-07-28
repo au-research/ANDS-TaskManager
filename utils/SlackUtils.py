@@ -22,10 +22,11 @@ class SlackUtils:
         """
         Send Messages to the configured Slack channel
         """
+        # if not set fake the 200 response code
         if not self.webhook_url:
-            return
+            return 200
         if self.logLevels[message_type] < self.logLevel:
-            return
+            return 200
         colour = "#00AA00"
         if message_type == 'ERROR':
             colour = "#AA0000"
@@ -47,6 +48,7 @@ class SlackUtils:
             "text": myconfig.slack_app_name + " " + message_type,
             "attachments": [
                 {
+                    "type": "mrkdwn",
                     "text": text,
                     "color": colour
                 },
@@ -58,12 +60,14 @@ class SlackUtils:
             ]
         }
         try:
-            header = {'User-Agent': 'ARDC Harvester'}
+            header = {'User-Agent': 'ARDC Taskmanager'}
             response = session.post(self.webhook_url, json=data, headers=header, verify=False)
             response.raise_for_status()
             session.close()
+            return response.status_code
         except Exception:
             e = sys.exc_info()[1]
-            print(repr(e))
             session.close()
-            pass
+            return repr(e)
+
+

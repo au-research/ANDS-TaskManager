@@ -1,4 +1,6 @@
-from TaskHandler import *
+from utils.PHPShell import PHPShell
+from utils.TaskHandler import TaskHandler
+
 
 class PHPSHELLTaskHandler(TaskHandler):
     """
@@ -13,15 +15,18 @@ class PHPSHELLTaskHandler(TaskHandler):
     """
     phpShell = None
 
-    def runTask(self):
+    def run_task(self):
         self.phpShell = PHPShell(str(self.tasksInfo['task_id']))
         try:
             self.phpShell.run()
         except Exception as e:
-            self.handleExceptions(e, True)
+            self.handle_exceptions(e, True)
             self.phpShell.stop()
-            self.logger.logMessage("ERROR WHILE RUNNING COMMAND %s" %(e), "ERROR")
+            self.logger.log_message("ERROR WHILE RUNNING COMMAND %s" % e, "ERROR")
         self.finish()
 
-    def getPID(self):
-        return self.phpShell.getPID()
+    def get_pid(self):
+        return self.phpShell.get_pid()
+
+    def get_shell(self):
+        return self.phpShell
